@@ -1,4 +1,6 @@
 import * as vscode from 'vscode';
+import * as fs from 'fs';
+import * as path from 'path';
 import { runCli, showCliNotFound } from './cli';
 import { registerCompletionProvider } from './completionProvider';
 import { MissionsViewProvider } from './missionsView';
@@ -17,7 +19,22 @@ const DOWNLOAD_URL = 'https://openthunder.dev';
 
 export function activate(context: vscode.ExtensionContext) {
   const config    = () => vscode.workspace.getConfiguration('openthunder');
-  const serverUrl = () => config().get<string>('serverUrl', 'http://localhost:7700');
+  // Resolve the local engine URL. An explicit user setting wins; otherwise auto-discover
+  // the port the engine actually bound (it records it in <workspace>/.openthunder/
+  // dev-ports.json when it isn't on the default 7700), so a stray server on 7700 can't
+  // hijack the connection. Falls back to 7700.
+  const serverUrl = () => {
+    const configured = config().get<string>('serverUrl', 'http://localhost:7700');
+    if (configured !== 'http://localhost:7700') return configured;
+    const folder = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath;
+    if (folder) {
+      try {
+        const j = JSON.parse(fs.readFileSync(path.join(folder, '.openthunder', 'dev-ports.json'), 'utf8')) as { serverUrl?: string };
+        if (j.serverUrl) return j.serverUrl.replace('127.0.0.1', 'localhost');
+      } catch { /* no handshake file yet */ }
+    }
+    return configured;
+  };
   const cloudUrl  = () => config().get<string>('cloudUrl', 'https://openthunder.ai');
   const provider  = () => config().get<string>('provider', 'mock');
 
