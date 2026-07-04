@@ -37,6 +37,13 @@ export class CurrentChangeViewProvider implements vscode.WebviewViewProvider {
       if (msg.type === 'openDashboard') {
         void vscode.commands.executeCommand('openthunder.openDashboard');
       }
+      if (msg.type === 'start') {
+        // Launch the desktop app (the engine) via its registered URL scheme, then
+        // re-check a few times as it comes up.
+        void vscode.env.openExternal(vscode.Uri.parse('openthunder://open'));
+        let tries = 0;
+        const t = setInterval(() => { tries++; void this.load(); if (tries >= 6) clearInterval(t); }, 2500);
+      }
     });
     void this.load();
   }
@@ -83,9 +90,9 @@ export class CurrentChangeViewProvider implements vscode.WebviewViewProvider {
       "const vscode=acquireVsCodeApi();const root=document.getElementById('root');",
       "function esc(s){var d=document.createElement('div');d.textContent=String(s==null?'':s);return d.innerHTML;}",
       "function btn(id,label,sec){return '<button id=\"'+id+'\"'+(sec?' class=\"sec-btn\"':'')+'>'+esc(label)+'</button>';}",
-      "function wire(){var rc=document.getElementById('rc');if(rc)rc.onclick=function(){root.className='muted';root.textContent='Checking…';vscode.postMessage({type:'recheck'});};var f=document.getElementById('full');if(f)f.onclick=function(){vscode.postMessage({type:'openDashboard'});};}",
+      "function wire(){var rc=document.getElementById('rc');if(rc)rc.onclick=function(){root.className='muted';root.textContent='Checking…';vscode.postMessage({type:'recheck'});};var f=document.getElementById('full');if(f)f.onclick=function(){vscode.postMessage({type:'openDashboard'});};var s=document.getElementById('start');if(s)s.onclick=function(){root.className='muted';root.textContent='Starting OpenThunder…';vscode.postMessage({type:'start'});};}",
       "function render(d){",
-      "  if(d.error){root.innerHTML='<div class=\"muted\">OpenThunder is not running locally. Start the desktop app (or the local server), then re-check.</div>'+btn('rc','Re-check');wire();return;}",
+      "  if(d.error){root.innerHTML='<div class=\"muted\">OpenThunder isn\\'t running yet. Start it and this panel fills in.</div>'+btn('start','Start OpenThunder')+btn('rc','Re-check',true);wire();return;}",
       "  if(d.empty){root.innerHTML='<div class=\"muted\">No uncommitted changes to verify. Make a change, then re-check.</div>'+btn('rc','Re-check');wire();return;}",
       "  var sd=d.shipDecision||{};var v=(sd.verdict||'').toLowerCase();var cls=v.indexOf('ship')>=0?'ship':(v.indexOf('hold')>=0||v.indexOf('block')>=0)?'hold':'caution';",
       "  var h='<div class=\"verdict '+cls+'\">'+esc((sd.verdict||'review').toUpperCase())+'</div>';",

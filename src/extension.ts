@@ -167,6 +167,21 @@ export function activate(context: vscode.ExtensionContext) {
     // Open Dashboard (local when reachable, else the browser app)
     vscode.commands.registerCommand('openthunder.openDashboard', () => openWorkbench()),
 
+    // Start the local engine: launch the desktop app via its URL scheme, then reprobe.
+    // The plugin is a thin client, so this is how it "works without the app open": it
+    // starts the app for you.
+    vscode.commands.registerCommand('openthunder.start', async () => {
+      await vscode.env.openExternal(vscode.Uri.parse('openthunder://open'));
+      for (let i = 0; i < 6; i++) {
+        await new Promise(r => setTimeout(r, 2500));
+        await refreshConnection();
+        if (localReachable) { vscode.window.showInformationMessage('OpenThunder is running.'); return; }
+      }
+      vscode.window.showWarningMessage('Could not reach OpenThunder. Is the desktop app installed?', 'Download').then(a => {
+        if (a === 'Download') vscode.env.openExternal(vscode.Uri.parse(DOWNLOAD_URL));
+      });
+    }),
+
     // Open any OpenThunder view as an embedded editor tab (feels like a complete plugin,
     // more than just Missions/Chat). Relays the local engine's dashboard sections.
     vscode.commands.registerCommand('openthunder.open', async () => {

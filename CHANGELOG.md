@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.6
+
+- **Start OpenThunder from the editor:** when the local engine isn't running, the Current Change panel now has a **Start OpenThunder** button (and an "OpenThunder: Start Local Engine" command) that launches the desktop app for you, then the panels fill in. No more sitting idle when the app is closed.
+
 ## 0.1.5
 
 - HTTPS (the cloud app and sign-in) now opens in your browser; the local OpenThunder dashboard opens as an embedded VS Code tab (OAuth works, and OT stays in the editor).
