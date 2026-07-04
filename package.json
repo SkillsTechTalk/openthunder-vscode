@@ -1,0 +1,222 @@
+{
+  "name": "openthunder",
+  "displayName": "OpenThunder: Understand Your Repo & Verify AI Changes",
+  "description": "Understand the repo, review AI-generated changes, and know when it's safe to ship, inside VS Code. Give Claude Code, Copilot, Cursor, and Codex better repo context, review diffs, and verify changes before you commit. Local-first, no account required for local use.",
+  "version": "0.1.0",
+  "publisher": "openthunder",
+  "icon": "media/icon.png",
+  "pricing": "Free",
+  "galleryBanner": {
+    "color": "#0d1117",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/SkillsTechTalk/openthunder-vscode.git"
+  },
+  "bugs": {
+    "url": "https://github.com/SkillsTechTalk/openthunder-vscode/issues"
+  },
+  "homepage": "https://openthunder.dev",
+  "license": "SEE LICENSE IN LICENSE",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "AI",
+    "Machine Learning",
+    "Other"
+  ],
+  "keywords": [
+    "ai",
+    "code review",
+    "claude code",
+    "copilot",
+    "cursor",
+    "codex",
+    "change verification",
+    "architecture",
+    "diff review",
+    "local-first",
+    "context",
+    "mcp"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "configuration": {
+      "title": "OpenThunder",
+      "properties": {
+        "openthunder.serverUrl": {
+          "type": "string",
+          "default": "http://localhost:7700",
+          "description": "URL of the local OpenThunder server. The plugin connects here directly when it is running."
+        },
+        "openthunder.cloudUrl": {
+          "type": "string",
+          "default": "https://openthunder.ai",
+          "description": "URL of the OpenThunder browser app, used as the fallback when the local server is not running."
+        },
+        "openthunder.cliPath": {
+          "type": "string",
+          "default": "openthunder",
+          "description": "Path to the OpenThunder CLI. The extension uses it for offline commands (context pack, diff review, PR summary)."
+        },
+        "openthunder.completionsEnabled": {
+          "type": "boolean",
+          "default": false,
+          "description": "Enable experimental inline AI completions. Off by default: requires the local OpenThunder server running and a real provider configured below (the 'mock' provider returns placeholder text). OpenThunder's value is repo understanding and change verification, not completion."
+        },
+        "openthunder.provider": {
+          "type": "string",
+          "default": "mock",
+          "enum": [
+            "mock",
+            "anthropic",
+            "groq",
+            "openrouter",
+            "ollama"
+          ],
+          "description": "AI provider for completions"
+        }
+      }
+    },
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "openthunder",
+          "title": "OpenThunder",
+          "icon": "media/activity-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "openthunder": [
+        {
+          "id": "openthunder.health",
+          "type": "webview",
+          "name": "Health Check"
+        },
+        {
+          "id": "openthunder.missions",
+          "type": "webview",
+          "name": "Missions"
+        },
+        {
+          "id": "openthunder.chat",
+          "type": "webview",
+          "name": "Chat"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "openthunder.runHealthCheck",
+        "title": "OpenThunder: Run Health Check"
+      },
+      {
+        "command": "openthunder.openHealthReport",
+        "title": "OpenThunder: Open Full Report in Dashboard"
+      },
+      {
+        "command": "openthunder.copyHealthSummary",
+        "title": "OpenThunder: Copy Health Summary"
+      },
+      {
+        "command": "openthunder.explainRepo",
+        "title": "OpenThunder: Explain This Repo"
+      },
+      {
+        "command": "openthunder.newMission",
+        "title": "OpenThunder: Create Mission from Selection"
+      },
+      {
+        "command": "openthunder.openDashboard",
+        "title": "OpenThunder: Open Dashboard"
+      },
+      {
+        "command": "openthunder.connect",
+        "title": "OpenThunder: Connect / Run Locally"
+      },
+      {
+        "command": "openthunder.toggleCompletions",
+        "title": "OpenThunder: Toggle Inline Completions"
+      },
+      {
+        "command": "openthunder.copyContextPack",
+        "title": "OpenThunder: Copy AI Context Pack"
+      },
+      {
+        "command": "openthunder.reviewDiff",
+        "title": "OpenThunder: Review Current Diff"
+      },
+      {
+        "command": "openthunder.prSummary",
+        "title": "OpenThunder: Generate PR Summary"
+      },
+      {
+        "command": "openthunder.openInDesktop",
+        "title": "OpenThunder: Open Repo in OpenThunder Desktop"
+      },
+      {
+        "command": "openthunder.installMcp",
+        "title": "OpenThunder: Install MCP Server (agent knowledge graph)"
+      },
+      {
+        "command": "openthunder.setupClaude",
+        "title": "OpenThunder: Set up Claude Code"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "openthunder.newMission",
+          "when": "editorHasSelection",
+          "group": "openthunder@1"
+        },
+        {
+          "command": "openthunder.runHealthCheck",
+          "group": "openthunder@2"
+        }
+      ],
+      "explorer/context": [
+        {
+          "command": "openthunder.runHealthCheck",
+          "when": "explorerResourceIsFolder",
+          "group": "openthunder@1"
+        }
+      ],
+      "commandPalette": [
+        { "command": "openthunder.runHealthCheck" },
+        { "command": "openthunder.openHealthReport" },
+        { "command": "openthunder.copyHealthSummary" },
+        { "command": "openthunder.explainRepo" },
+        { "command": "openthunder.newMission" },
+        { "command": "openthunder.openDashboard" },
+        { "command": "openthunder.connect" },
+        { "command": "openthunder.toggleCompletions" },
+        { "command": "openthunder.copyContextPack" },
+        { "command": "openthunder.reviewDiff" },
+        { "command": "openthunder.prSummary" },
+        { "command": "openthunder.openInDesktop" },
+        { "command": "openthunder.installMcp" },
+        { "command": "openthunder.setupClaude" }
+      ]
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "pnpm compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package --no-dependencies",
+    "publish": "vsce publish"
+  },
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^2.32.0",
+    "typescript": "^5.4.0"
+  }
+}
