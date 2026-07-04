@@ -35,7 +35,7 @@ export class CurrentChangeViewProvider implements vscode.WebviewViewProvider {
     webviewView.webview.onDidReceiveMessage((msg: { type: string }) => {
       if (msg.type === 'recheck') void this.load();
       if (msg.type === 'openDashboard') {
-        vscode.env.openExternal(vscode.Uri.parse(this.serverUrl().replace(':7700', ':5173')));
+        void vscode.commands.executeCommand('openthunder.openDashboard');
       }
     });
     void this.load();

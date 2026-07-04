@@ -1,8 +1,9 @@
 # Changelog
 
-## 0.1.2
+## 0.1.3
 
 - New **Current Change** panel: a live "Can I Ship?" verdict for your working changes (ship / caution / hold, risk, changed files, blast radius, blockers and cautions), relayed from your local OpenThunder engine, right in the sidebar.
+- **Stay in the editor:** the OpenThunder dashboard now opens *inside* VS Code (embedded, beside your code) when running locally, so you never have to leave for a browser.
 - New command **OpenThunder: Trust & Data Activity** — see the current mode (Local Only / Standard) and how many requests left your machine, without leaving the editor.
 - The extension stays a thin visual layer: analysis runs on your local engine, VS Code just shows it.
 

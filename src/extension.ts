@@ -425,8 +425,26 @@ export function activate(context: vscode.ExtensionContext) {
   // in the browser. A fresh probe runs first so the routing is accurate.
   async function openWorkbench(hash = ''): Promise<void> {
     await refreshConnection();
-    const base = localReachable ? serverUrl().replace(':7700', ':5173') : cloudUrl();
-    vscode.env.openExternal(vscode.Uri.parse(base + hash));
+    // Local dashboard: open it EMBEDDED in a VS Code editor tab via the built-in
+    // Simple Browser, so the full workbench lives inside the editor. Cloud stays in
+    // the external browser (OAuth/sign-in doesn't play well in an embedded iframe).
+    if (localReachable) {
+      const url = serverUrl().replace(':7700', ':5173') + hash;
+      // Prefer opening BESIDE the code (dashboard on one side, your files on the
+      // other) so you stay in the editor while working. Fall back progressively.
+      try {
+        await vscode.commands.executeCommand('simpleBrowser.api.open', vscode.Uri.parse(url), { viewColumn: vscode.ViewColumn.Beside });
+        return;
+      } catch { /* older VS Code / no api.open */ }
+      try {
+        await vscode.commands.executeCommand('simpleBrowser.show', url);
+        return;
+      } catch {
+        vscode.env.openExternal(vscode.Uri.parse(url));
+        return;
+      }
+    }
+    vscode.env.openExternal(vscode.Uri.parse(cloudUrl() + hash));
   }
 
   // Probe the local server and reflect the result on the connection status bar.
