@@ -188,14 +188,41 @@ export function activate(context: vscode.ExtensionContext) {
     // The plugin is a thin client, so this is how it "works without the app open": it
     // starts the app for you.
     vscode.commands.registerCommand('openthunder.start', async () => {
+      const folder = vscode.workspace.workspaceFolders?.[0];
+      // 1) Preferred: start the engine via the CLI in a visible terminal — no desktop app needed.
+      if (folder) {
+        const cliOk = await runCli('--version', [], folder.uri.fsPath);
+        if (!cliOk.notFound && cliOk.ok) {
+          const cliPath = config().get<string>('cliPath', 'openthunder');
+          const term = vscode.window.createTerminal('OpenThunder Engine');
+          term.show(false);
+          term.sendText(`${cliPath} serve -C "${folder.uri.fsPath}"`);
+          for (let i = 0; i < 8; i++) {
+            await new Promise(r => setTimeout(r, 2000));
+            await refreshConnection();
+            if (localReachable) { vscode.window.showInformationMessage('OpenThunder engine started.'); return; }
+          }
+          return; // the terminal is running; the connection may just be warming up
+        }
+      }
+      // 2) Fallback: launch the installed desktop app via its URL scheme.
       await vscode.env.openExternal(vscode.Uri.parse('openthunder://open'));
-      for (let i = 0; i < 6; i++) {
+      for (let i = 0; i < 5; i++) {
         await new Promise(r => setTimeout(r, 2500));
         await refreshConnection();
         if (localReachable) { vscode.window.showInformationMessage('OpenThunder is running.'); return; }
       }
-      vscode.window.showWarningMessage('Could not reach OpenThunder. Is the desktop app installed?', 'Download').then(a => {
-        if (a === 'Download') vscode.env.openExternal(vscode.Uri.parse(DOWNLOAD_URL));
+      // 3) Nothing installed: guide the user to an engine.
+      vscode.window.showWarningMessage(
+        'OpenThunder engine not found. Install it to run analysis locally.',
+        'Install CLI', 'Get Desktop App',
+      ).then(a => {
+        if (a === 'Get Desktop App') vscode.env.openExternal(vscode.Uri.parse(DOWNLOAD_URL));
+        if (a === 'Install CLI') {
+          const t = vscode.window.createTerminal('Install OpenThunder CLI');
+          t.show();
+          t.sendText('npm install -g @openthunder/cli');
+        }
       });
     }),
 

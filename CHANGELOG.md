@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.8
+
+- **The plugin can start the engine itself.** "Start OpenThunder" now runs the engine via the CLI (openthunder serve) in a terminal, no desktop app required, then falls back to launching the desktop app, or guides you to install the CLI or desktop. Fixes the plugin sitting idle when nothing is running.
+
 ## 0.1.7
 
 - Auto-discovers the running engine: reads the port OpenThunder actually bound (from .openthunder/dev-ports.json) instead of always assuming 7700, so a stray old server can no longer hijack the connection.
