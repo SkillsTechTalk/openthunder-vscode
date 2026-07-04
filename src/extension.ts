@@ -4,6 +4,7 @@ import { registerCompletionProvider } from './completionProvider';
 import { MissionsViewProvider } from './missionsView';
 import { ChatViewProvider } from './chatView';
 import { HealthViewProvider } from './healthView';
+import { CurrentChangeViewProvider } from './currentChangeView';
 
 let statusBar: vscode.StatusBarItem;
 let connBar: vscode.StatusBarItem;
@@ -40,11 +41,13 @@ export function activate(context: vscode.ExtensionContext) {
   context.subscriptions.push(registerCompletionProvider(context, serverUrl, provider));
 
   // Sidebar views
+  const currentChangeProvider = new CurrentChangeViewProvider(serverUrl);
   const healthProvider   = new HealthViewProvider(context.extensionUri, serverUrl);
   const missionsProvider = new MissionsViewProvider(context.extensionUri, serverUrl);
   const chatProvider     = new ChatViewProvider(context.extensionUri, serverUrl, provider);
 
   context.subscriptions.push(
+    vscode.window.registerWebviewViewProvider('openthunder.currentChange', currentChangeProvider),
     vscode.window.registerWebviewViewProvider('openthunder.health',   healthProvider),
     vscode.window.registerWebviewViewProvider('openthunder.missions', missionsProvider),
     vscode.window.registerWebviewViewProvider('openthunder.chat',     chatProvider),
@@ -163,6 +166,31 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Open Dashboard (local when reachable, else the browser app)
     vscode.commands.registerCommand('openthunder.openDashboard', () => openWorkbench()),
+
+    // Can I Ship? — reveal + refresh the Current Change panel (relays the engine's verdict)
+    vscode.commands.registerCommand('openthunder.verifyChanges', async () => {
+      await vscode.commands.executeCommand('openthunder.currentChange.focus');
+      currentChangeProvider.refresh();
+    }),
+
+    // Trust & Data Activity — relay the local engine's trust status into VS Code
+    vscode.commands.registerCommand('openthunder.trust', async () => {
+      const openCenter = () => vscode.env.openExternal(vscode.Uri.parse('https://openthunder.dev/docs/trust.html'));
+      try {
+        const r = await fetch(`${serverUrl()}/api/trust/status`, { signal: AbortSignal.timeout(3000) });
+        if (!r.ok) { openCenter(); return; }
+        const s = await r.json() as { mode?: string; externalRequests?: number; blocked?: number };
+        const mode = s.mode === 'local-only' ? 'Local Only (network locked)' : 'Standard';
+        const pick = await vscode.window.showInformationMessage(
+          `OpenThunder — Mode: ${mode}. Requests that left this machine: ${s.externalRequests ?? 0} (blocked: ${s.blocked ?? 0}). Telemetry: off. Account: not required for local use.`,
+          'Open Data Activity', 'Trust Center',
+        );
+        if (pick === 'Open Data Activity') openWorkbench();
+        if (pick === 'Trust Center') openCenter();
+      } catch {
+        openCenter();
+      }
+    }),
 
     // Connect / Run Locally: the "prefer local, offer browser" entry point. Shown
     // on the connection status bar and in the command palette.
