@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.5
+
+- HTTPS (the cloud app and sign-in) now opens in your browser; the local OpenThunder dashboard opens as an embedded VS Code tab (OAuth works, and OT stays in the editor).
+- New command **OpenThunder: Open a View in the Editor** — open Architecture, Security, Repositories, Mastery, Reports, Trust, or Missions as an in-editor tab, so the plugin does much more than Missions and Chat.
+
 ## 0.1.4
 
 - The embedded dashboard now works with the packaged desktop app too: the extension asks the local engine where the dashboard is served instead of guessing the port.

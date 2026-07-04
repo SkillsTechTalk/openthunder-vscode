@@ -167,6 +167,23 @@ export function activate(context: vscode.ExtensionContext) {
     // Open Dashboard (local when reachable, else the browser app)
     vscode.commands.registerCommand('openthunder.openDashboard', () => openWorkbench()),
 
+    // Open any OpenThunder view as an embedded editor tab (feels like a complete plugin,
+    // more than just Missions/Chat). Relays the local engine's dashboard sections.
+    vscode.commands.registerCommand('openthunder.open', async () => {
+      const items = [
+        { label: '$(home) Dashboard', hash: '#/dashboard' },
+        { label: '$(git-branch) Missions', hash: '#/missions' },
+        { label: '$(folder-library) Repositories', hash: '#/repositories' },
+        { label: '$(circuit-board) Architecture Lens', hash: '#/lens' },
+        { label: '$(shield) Security Lens', hash: '#/security' },
+        { label: '$(mortar-board) Repository Mastery', hash: '#/mastery' },
+        { label: '$(checklist) Reports', hash: '#/reports' },
+        { label: '$(lock) Trust & Privacy', hash: '#/trust' },
+      ];
+      const pick = await vscode.window.showQuickPick(items, { placeHolder: 'Open an OpenThunder view in the editor' });
+      if (pick) await openWorkbench(pick.hash);
+    }),
+
     // Can I Ship? — reveal + refresh the Current Change panel (relays the engine's verdict)
     vscode.commands.registerCommand('openthunder.verifyChanges', async () => {
       await vscode.commands.executeCommand('openthunder.currentChange.focus');
@@ -436,10 +453,12 @@ export function activate(context: vscode.ExtensionContext) {
     return serverUrl().replace(':7700', ':5173');
   }
 
-  // Open a URL inside VS Code (embedded Simple Browser, beside the code) so you stay
-  // in the editor; fall back to the external browser. Note: sign-in pages that set
-  // X-Frame-Options may refuse to embed, in which case the external browser is used.
+  // The local OpenThunder dashboard (http/localhost) opens as an EMBEDDED VS Code tab
+  // beside your code, so OT feels like a complete in-editor plugin. HTTPS (the cloud
+  // app, Skills Tech Talk sign-in, anything external) opens in the real browser, where
+  // OAuth and cross-site cookies work.
   async function openEmbeddedOrExternal(url: string): Promise<void> {
+    if (url.startsWith('https://')) { await vscode.env.openExternal(vscode.Uri.parse(url)); return; }
     try { await vscode.commands.executeCommand('simpleBrowser.api.open', vscode.Uri.parse(url), { viewColumn: vscode.ViewColumn.Beside }); return; }
     catch { /* try the simpler command */ }
     try { await vscode.commands.executeCommand('simpleBrowser.show', url); return; }
@@ -449,8 +468,6 @@ export function activate(context: vscode.ExtensionContext) {
   async function openWorkbench(hash = ''): Promise<void> {
     await refreshConnection();
     const base = localReachable ? await localDashboardUrl() : cloudUrl();
-    // Try to keep both OpenThunder and Skills Tech Talk sign-in inside VS Code (a new
-    // editor tab). If the login provider blocks framing, this falls back to external.
     await openEmbeddedOrExternal(base + hash);
   }
 

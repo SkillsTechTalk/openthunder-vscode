@@ -2,7 +2,7 @@
   "name": "openthunder",
   "displayName": "OpenThunder: Understand Your Repo & Verify AI Changes",
   "description": "Understand the repo, review AI-generated changes, and know when it's safe to ship, inside VS Code. Give Claude Code, Copilot, Cursor, and Codex better repo context, review diffs, and verify changes before you commit. Local-first, no account required for local use.",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "publisher": "openthunder",
   "icon": "media/icon.png",
   "pricing": "Free",
@@ -174,6 +174,10 @@
         "title": "OpenThunder: Set up Claude Code"
       },
       {
+        "command": "openthunder.open",
+        "title": "OpenThunder: Open a View in the Editor"
+      },
+      {
         "command": "openthunder.verifyChanges",
         "title": "OpenThunder: Can I Ship? (verify current changes)"
       },
@@ -216,6 +220,7 @@
         { "command": "openthunder.openInDesktop" },
         { "command": "openthunder.installMcp" },
         { "command": "openthunder.setupClaude" },
+        { "command": "openthunder.open" },
         { "command": "openthunder.verifyChanges" },
         { "command": "openthunder.trust" }
       ]
