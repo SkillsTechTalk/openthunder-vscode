@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Clearer Marketplace listing and honest, accurate privacy language.
+- Inline completions are now experimental and OFF by default.
+- The extension is now source-available under PolyForm Shield 1.0.0: [github.com/SkillsTechTalk/openthunder-vscode](https://github.com/SkillsTechTalk/openthunder-vscode).
+
 ## 0.1.0
 
 Initial release: local-first repo intelligence inside VS Code.
