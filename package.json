@@ -2,7 +2,7 @@
   "name": "openthunder",
   "displayName": "OpenThunder: Understand Your Repo & Verify AI Changes",
   "description": "Understand the repo, review AI-generated changes, and know when it's safe to ship, inside VS Code. Give Claude Code, Copilot, Cursor, and Codex better repo context, review diffs, and verify changes before you commit. Local-first, no account required for local use.",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "publisher": "openthunder",
   "icon": "media/icon.png",
   "pricing": "Free",

@@ -13,6 +13,10 @@ let connBar: vscode.StatusBarItem;
 // Whether the local OpenThunder server answered its health probe. Drives the
 // "prefer local, offer browser" routing and the connection status bar.
 let localReachable = false;
+// The managed terminal running `openthunder serve`, and a guard so we never start
+// two engines at once. The extension owns the engine lifecycle (start/resilience).
+let engineTerminal: vscode.Terminal | undefined;
+let startingEngine = false;
 
 // Where users download OpenThunder to run it locally.
 const DOWNLOAD_URL = 'https://openthunder.dev';
@@ -184,47 +188,9 @@ export function activate(context: vscode.ExtensionContext) {
     // Open Dashboard (local when reachable, else the browser app)
     vscode.commands.registerCommand('openthunder.openDashboard', () => openWorkbench()),
 
-    // Start the local engine: launch the desktop app via its URL scheme, then reprobe.
-    // The plugin is a thin client, so this is how it "works without the app open": it
-    // starts the app for you.
-    vscode.commands.registerCommand('openthunder.start', async () => {
-      const folder = vscode.workspace.workspaceFolders?.[0];
-      // 1) Preferred: start the engine via the CLI in a visible terminal — no desktop app needed.
-      if (folder) {
-        const cliOk = await runCli('--version', [], folder.uri.fsPath);
-        if (!cliOk.notFound && cliOk.ok) {
-          const cliPath = config().get<string>('cliPath', 'openthunder');
-          const term = vscode.window.createTerminal('OpenThunder Engine');
-          term.show(false);
-          term.sendText(`${cliPath} serve -C "${folder.uri.fsPath}"`);
-          for (let i = 0; i < 8; i++) {
-            await new Promise(r => setTimeout(r, 2000));
-            await refreshConnection();
-            if (localReachable) { vscode.window.showInformationMessage('OpenThunder engine started.'); return; }
-          }
-          return; // the terminal is running; the connection may just be warming up
-        }
-      }
-      // 2) Fallback: launch the installed desktop app via its URL scheme.
-      await vscode.env.openExternal(vscode.Uri.parse('openthunder://open'));
-      for (let i = 0; i < 5; i++) {
-        await new Promise(r => setTimeout(r, 2500));
-        await refreshConnection();
-        if (localReachable) { vscode.window.showInformationMessage('OpenThunder is running.'); return; }
-      }
-      // 3) Nothing installed: guide the user to an engine.
-      vscode.window.showWarningMessage(
-        'OpenThunder engine not found. Install it to run analysis locally.',
-        'Install CLI', 'Get Desktop App',
-      ).then(a => {
-        if (a === 'Get Desktop App') vscode.env.openExternal(vscode.Uri.parse(DOWNLOAD_URL));
-        if (a === 'Install CLI') {
-          const t = vscode.window.createTerminal('Install OpenThunder CLI');
-          t.show();
-          t.sendText('npm install -g @openthunder/cli');
-        }
-      });
-    }),
+    // Start the local engine via the plugin. Resilient: probe → `openthunder serve`
+    // (CLI, no desktop app) → launch desktop → offer to install. All in ensureEngine.
+    vscode.commands.registerCommand('openthunder.start', () => ensureEngine({})),
 
     // Open any OpenThunder view as an embedded editor tab (feels like a complete plugin,
     // more than just Missions/Chat). Relays the local engine's dashboard sections.
@@ -530,6 +496,58 @@ export function activate(context: vscode.ExtensionContext) {
     await openEmbeddedOrExternal(base + hash);
   }
 
+  const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+  // Ensure the local engine is running, resiliently. Probe first; if it's down, start
+  // it via the CLI (`openthunder serve` in a managed terminal, no desktop app needed)
+  // and poll until it answers. De-duplicated (never starts two). In silent mode
+  // (activation auto-start) it only tries the CLI; the desktop-launch + install
+  // onboarding run only on an explicit user request.
+  async function ensureEngine(opts: { silent?: boolean } = {}): Promise<boolean> {
+    await refreshConnection();
+    if (localReachable) return true;
+    if (startingEngine) return false;
+
+    const folder = vscode.workspace.workspaceFolders?.[0];
+    if (folder) {
+      const cliOk = await runCli('--version', [], folder.uri.fsPath);
+      if (!cliOk.notFound && cliOk.ok) {
+        startingEngine = true;
+        try {
+          if (!engineTerminal || engineTerminal.exitStatus !== undefined) {
+            engineTerminal = vscode.window.createTerminal({ name: 'OpenThunder Engine' });
+            if (!opts.silent) engineTerminal.show(false);
+            engineTerminal.sendText(`${config().get<string>('cliPath', 'openthunder')} serve -C "${folder.uri.fsPath}"`);
+          }
+          for (let i = 0; i < 12; i++) {
+            await sleep(1500);
+            await refreshConnection();
+            if (localReachable) { if (!opts.silent) vscode.window.showInformationMessage('OpenThunder engine started.'); return true; }
+          }
+          return false;
+        } finally { startingEngine = false; }
+      }
+    }
+
+    if (opts.silent) return false; // don't launch the desktop or nag on auto-start
+
+    // No CLI: try the installed desktop app, then offer to install an engine.
+    await vscode.env.openExternal(vscode.Uri.parse('openthunder://open'));
+    for (let i = 0; i < 5; i++) { await sleep(2500); await refreshConnection(); if (localReachable) return true; }
+    const pick = await vscode.window.showInformationMessage(
+      'OpenThunder needs its local engine to run analysis. Install it once and the plugin runs locally, no account.',
+      'Install CLI (npm)', 'Get Desktop App',
+    );
+    if (pick === 'Install CLI (npm)') {
+      const t = vscode.window.createTerminal('Install OpenThunder');
+      t.show();
+      t.sendText('npm install -g @openthunder/cli && openthunder serve');
+    } else if (pick === 'Get Desktop App') {
+      await vscode.env.openExternal(vscode.Uri.parse(DOWNLOAD_URL));
+    }
+    return false;
+  }
+
   // Probe the local server and reflect the result on the connection status bar.
   async function refreshConnection(): Promise<void> {
     const url = serverUrl();
@@ -567,6 +585,17 @@ export function activate(context: vscode.ExtensionContext) {
   // Probe on startup so the status bar reflects reality; stays silent (the
   // always-visible status bar is the affordance, no need to nag with a toast).
   refreshConnection();
+
+  // Auto-start the engine on activation if the CLI is available (silent: a hidden
+  // terminal, no prompt). This is the "plugin starts localhost" behaviour: open a
+  // repo and the engine comes up on its own. Does nothing if already reachable or no
+  // engine is installed (the panels/status bar then guide setup).
+  setTimeout(() => { void ensureEngine({ silent: true }); }, 1500);
+
+  // Resilience: re-probe periodically so the connection state recovers when the engine
+  // comes up or goes down (e.g. you start it, or it restarts).
+  const probeTimer = setInterval(() => { void refreshConnection(); }, 20_000);
+  context.subscriptions.push({ dispose: () => clearInterval(probeTimer) });
 }
 
 function updateStatusBar(enabled: boolean) {

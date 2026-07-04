@@ -38,11 +38,8 @@ export class CurrentChangeViewProvider implements vscode.WebviewViewProvider {
         void vscode.commands.executeCommand('openthunder.openDashboard');
       }
       if (msg.type === 'start') {
-        // Launch the desktop app (the engine) via its registered URL scheme, then
-        // re-check a few times as it comes up.
-        void vscode.env.openExternal(vscode.Uri.parse('openthunder://open'));
-        let tries = 0;
-        const t = setInterval(() => { tries++; void this.load(); if (tries >= 6) clearInterval(t); }, 2500);
+        // Resilient engine start (CLI serve / desktop / install) lives in the command.
+        void vscode.commands.executeCommand('openthunder.start').then(() => this.load());
       }
     });
     void this.load();

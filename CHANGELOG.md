@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.9
+
+- **The plugin now starts and manages the engine itself, resiliently.** On activation it auto-starts the local engine via `openthunder serve` (no desktop app needed) if the CLI is installed, de-duplicates so it never launches two, re-probes on a timer to recover the connection, and if no engine is installed it offers a one-command setup (`npm i -g /cli`). Open a repo and it just comes up.
+
 ## 0.1.8
 
 - **The plugin can start the engine itself.** "Start OpenThunder" now runs the engine via the CLI (openthunder serve) in a terminal, no desktop app required, then falls back to launching the desktop app, or guides you to install the CLI or desktop. Fixes the plugin sitting idle when nothing is running.
