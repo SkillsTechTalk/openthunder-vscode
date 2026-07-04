@@ -1,5 +1,5 @@
 {
-  "name": "openthunder",
+  "name": "openthunder-vscode",
   "displayName": "OpenThunder: Understand Your Repo & Verify AI Changes",
   "description": "Understand the repo, review AI-generated changes, and know when it's safe to ship, inside VS Code. Give Claude Code, Copilot, Cursor, and Codex better repo context, review diffs, and verify changes before you commit. Local-first, no account required for local use.",
   "version": "0.1.1",
