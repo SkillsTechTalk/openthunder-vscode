@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.4
+
+- The embedded dashboard now works with the packaged desktop app too: the extension asks the local engine where the dashboard is served instead of guessing the port.
+- Sign-in (including Skills Tech Talk) now tries to open inside VS Code (a new editor tab) so both OpenThunder and Skills Tech Talk can run in the IDE. If a login provider blocks embedding, it opens in your browser for that step.
+
 ## 0.1.3
 
 - New **Current Change** panel: a live "Can I Ship?" verdict for your working changes (ship / caution / hold, risk, changed files, blast radius, blockers and cautions), relayed from your local OpenThunder engine, right in the sidebar.

@@ -423,28 +423,35 @@ export function activate(context: vscode.ExtensionContext) {
   // Open the OpenThunder workbench. Prefer local, offer browser: if the local
   // server is reachable, open the local dashboard; otherwise open the cloud app
   // in the browser. A fresh probe runs first so the routing is accurate.
+  // Ask the local engine where its dashboard is served (works in the packaged desktop
+  // app, which now serves the SPA over HTTP). Falls back to the vite dev port.
+  async function localDashboardUrl(): Promise<string> {
+    try {
+      const r = await fetch(`${serverUrl()}/api/client-config`, { signal: AbortSignal.timeout(3000) });
+      if (r.ok) {
+        const c = await r.json() as { dashboardUrl?: string | null };
+        if (c.dashboardUrl) return c.dashboardUrl.replace(/\/$/, '');
+      }
+    } catch { /* fall back */ }
+    return serverUrl().replace(':7700', ':5173');
+  }
+
+  // Open a URL inside VS Code (embedded Simple Browser, beside the code) so you stay
+  // in the editor; fall back to the external browser. Note: sign-in pages that set
+  // X-Frame-Options may refuse to embed, in which case the external browser is used.
+  async function openEmbeddedOrExternal(url: string): Promise<void> {
+    try { await vscode.commands.executeCommand('simpleBrowser.api.open', vscode.Uri.parse(url), { viewColumn: vscode.ViewColumn.Beside }); return; }
+    catch { /* try the simpler command */ }
+    try { await vscode.commands.executeCommand('simpleBrowser.show', url); return; }
+    catch { await vscode.env.openExternal(vscode.Uri.parse(url)); }
+  }
+
   async function openWorkbench(hash = ''): Promise<void> {
     await refreshConnection();
-    // Local dashboard: open it EMBEDDED in a VS Code editor tab via the built-in
-    // Simple Browser, so the full workbench lives inside the editor. Cloud stays in
-    // the external browser (OAuth/sign-in doesn't play well in an embedded iframe).
-    if (localReachable) {
-      const url = serverUrl().replace(':7700', ':5173') + hash;
-      // Prefer opening BESIDE the code (dashboard on one side, your files on the
-      // other) so you stay in the editor while working. Fall back progressively.
-      try {
-        await vscode.commands.executeCommand('simpleBrowser.api.open', vscode.Uri.parse(url), { viewColumn: vscode.ViewColumn.Beside });
-        return;
-      } catch { /* older VS Code / no api.open */ }
-      try {
-        await vscode.commands.executeCommand('simpleBrowser.show', url);
-        return;
-      } catch {
-        vscode.env.openExternal(vscode.Uri.parse(url));
-        return;
-      }
-    }
-    vscode.env.openExternal(vscode.Uri.parse(cloudUrl() + hash));
+    const base = localReachable ? await localDashboardUrl() : cloudUrl();
+    // Try to keep both OpenThunder and Skills Tech Talk sign-in inside VS Code (a new
+    // editor tab). If the login provider blocks framing, this falls back to external.
+    await openEmbeddedOrExternal(base + hash);
   }
 
   // Probe the local server and reflect the result on the connection status bar.
